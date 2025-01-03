@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # API keyの設定
-YOUR_API_KEY="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"
+YOUR_API_KEY=$OPEN_AI_KEY
 set -x
 
 # JSONファイルの読み込み
