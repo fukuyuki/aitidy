@@ -1,66 +1,73 @@
 #!/bin/bash
+set -x  # echo on
 
-# API keyの設定
-YOUR_API_KEY=$OPEN_AI_KEY
-set -x
+# 1. 環境変数設定
+YOUR_API_KEY="${OPEN_AI_KEY}"
 
-# JSONファイルの読み込み
-if [ -f timestamps.json ]; then
-    timestamps=$(cat timestamps.json)
+# 2. JSONファイル:filesize.jsonを読み込む
+if [ -f "filesize.json" ]; then
+  filesize_json=$(cat filesize.json)
 else
-    timestamps="{}"
+  filesize_json="{}"  # JSONデータがない場合は空オブジェクトを初期化
 fi
 
-# プロンプトファイルの取得
-prompt_files=(prompts/*.txt)
+# 3. prompts ディレクトリ内の txt ファイルを配列 prompt_files に格納
+prompt_files=($(find prompts -type f -name "*.txt"))
 
-# 各プロンプトファイルの処理
+# 4. 各ファイルについて処理
 for file in "${prompt_files[@]}"; do
-    # ファイルのタイムスタンプを取得
-    timestamp=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file")
-    
-    # タイムスタンプの比較
-    current_timestamp=$(echo "$timestamps" | jq -r ".timestamps[\"$file\"]" 2>/dev/null)
-    if [ "$current_timestamp" = "$timestamp" ]; then
-        continue
-    fi
+  # 現在のファイルサイズを取得
+  current_filesize=$(stat -c%s "$file")
 
-    # 出力ファイル名の取得（1行目）
-    output_filename=$(head -n 1 "$file" | tr -d '\r\n')
-    
-    # ファイル名の長さチェック
-    if [ ${#output_filename} -ge 24 ]; then
-        echo "Error: Output filename is too long (max 23 characters): $output_filename"
-        exit 1
-    fi
+  # JSONから以前のファイルサイズを取得
+  previous_filesize=$(echo "$filesize_json" | jq -r --arg file "$file" '.[$file] // empty')
 
-    # プロンプトの取得（2行目以降）
-    prompt=$(tail -n +2 "$file")
-    prompt="${prompt}返答はコードのみです。説明はコメントで入れてください。"
+  # ファイルサイズが変わっていなければスキップ
+  if [ "$current_filesize" == "$previous_filesize" ]; then
+    continue
+  fi
 
-    # APIリクエストの作成と送信
-    response=$(curl -s https://api.openai.com/v1/chat/completions \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $YOUR_API_KEY" \
-        -d "{
-            \"model\": \"gpt-4o-2024-11-20\",
-            \"messages\": [{
-                \"role\": \"user\",
-                \"content\": $(echo "$prompt" | jq -Rs .)
-            }]
-        }")
+  # ファイルの中身を処理
+  mapfile -t lines < "$file"
+  output_filename=$(echo "${lines[0]}" | tr -d '\r\n')
 
-    # レスポンスの処理と保存
-    echo "$response" | jq -r '.choices[0].message.content' | \
-        sed '/^```/d' > "$output_filename"
+  # ファイル名の長さをチェック
+  if [ ${#output_filename} -ge 24 ]; then
+    echo "Error: Output filename exceeds 24 characters."
+    exit 1
+  fi
 
-    # タイムスタンプの更新
-    timestamps=$(echo "$timestamps" | jq --arg file "$file" --arg timestamp "$timestamp" \
-        '.timestamps[$file] = $timestamp')
+  # プロンプトの生成（2行目から最終行まで）
+  prompt=$(printf "%s\n" "${lines[@]:1}")
+  prompt+="\n返答はコードのみです。説明はコメントで入れてください。"
+
+  # APIリクエストのデータ作成
+  json_payload=$(jq -n --arg model "gpt-4o-2024-11-20" --arg prompt "$prompt" '{
+    "model": $model,
+    "messages": [{"role": "user", "content": $prompt}]
+  }')
+
+  # OpenAI APIにリクエストを送信
+  response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "$json_payload")
+
+  # レスポンスをファイルに保存
+  echo "$response" | jq -r '.choices[0].message.content' > "$output_filename"
+
+  # ``` を含む行を削除
+  sed -i '/```/d' "$output_filename"
+
+  # 出力ファイルのサイズを取得
+  output_filesize=$(stat -c%s "$output_filename")
+
+  # filesize.json を更新
+  filesize_json=$(echo "$filesize_json" | jq --arg file "$file" --argjson size "$output_filesize" '.[$file] = $size')
+
+  # 更新内容を保存
+  echo "$filesize_json" > filesize.json
 done
 
-# 更新されたタイムスタンプの保存
-echo "$timestamps" > timestamps.json
-
-# timestamps.jsonの削除
-#rm timestamps.json
+# 5. filesize.json を削除
+#rm -f filesize.json

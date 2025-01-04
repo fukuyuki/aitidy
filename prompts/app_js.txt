@@ -10,7 +10,7 @@ nodejs version18でexpressで下記のようなコードを書いて下さい。
 
 ##エンドポイント##
 /upload
-(1) get value uid , image from request POST body.
+(1) get value $uid , $image from request POST body.
 (2) convert image to BASE64, set to variable 'base64img' 
 (3) read whole file "tidy_prompt.txt", set to string variable 'prompt_tidy'
 (4) send following REST request by using *axios*
@@ -18,9 +18,11 @@ nodejs version18でexpressで下記のようなコードを書いて下さい。
 URL : https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=AIzaSyCCogqa39KQnXsMRquF55kbZr3jEJJbsB0
 Header : 'Content-Type: application/json'
 Body : '{"contents":[{"parts":[{"text": "${prompt_tidy}"},{"inline_data": {"mime_type":"image/jpeg","data": "'$(base64img)'"}}]}]}'
-(4)Receive response as JSON.  
+(4)Receive response as JSON. print to console.log the resposne.  
 ###
-(5)
+(5)get the text value from response.candidates[0].content.parts[0].text. and conver to json variable 'ai_response_json'. 
+(6)consle.log( ai_response_json )
+
 
 /pay
 
@@ -32,8 +34,8 @@ Body : '{"contents":[{"parts":[{"text": "${prompt_tidy}"},{"inline_data": {"mime
 
 
 /review
- (1) get value "uid" from POST body JSON
- (2) get row from SQLite Database "users" find by same "uid"
+ (1) get value "uid" from POST body JSON.
+ (2) get row from SQLite Database "users" find by same "uid".
  (3) 
 
 
