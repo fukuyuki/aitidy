@@ -1,0 +1,42 @@
+app.js
+nodejs version18でexpressで下記のようなコードを書いて下さい。
+必要なnpmのコマンドをコードの一行目にコメントで書いて下さい。
+
+##データベース##
+- sqlite3を使う。
+- データベースファイル名:if "os.release()" include string"WSL" database-filename is "./ai2025.db"..but, if not it must be "/mnt/test/ai2025.db"
+- テーブルが存在しなければ、createする。table name=users,テーブル仕様={ id char {ユニークID} , email char(64), paytime int default 0 , count default 5 , create_time=TIME_STAMP }
+
+
+##エンドポイント##
+/upload
+(1) get value uid , image from request POST body.
+(2) convert image to BASE64, set to variable 'base64img' 
+(3) read whole file "tidy_prompt.txt", set to string variable 'prompt_tidy'
+(4) send following REST request by using *axios*
+###
+URL : https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=AIzaSyCCogqa39KQnXsMRquF55kbZr3jEJJbsB0
+Header : 'Content-Type: application/json'
+Body : '{"contents":[{"parts":[{"text": "${prompt_tidy}"},{"inline_data": {"mime_type":"image/jpeg","data": "'$(base64img)'"}}]}]}'
+(4)Receive response as JSON.  
+###
+(5)
+
+/pay
+
+
+/webhook
+
+
+/skip
+
+
+/review
+ (1) get value "uid" from POST body JSON
+ (2) get row from SQLite Database "users" find by same "uid"
+ (3) 
+
+
+/page/{pageid}
+　(1) {pageid}.html が存歳するか調べる。なければエラーを返す。
+　(2) {pageid}.htmlをそのまま表示する。
