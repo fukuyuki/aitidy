@@ -5,7 +5,47 @@ nodejs version18でexpressで下記のようなコードを書いて下さい。
 ##データベース##
 - sqlite3を使う。
 - データベースファイル名:if "os.release()" include string"WSL" database-filename is "./ai2025.db"..but, if not it must be "/mnt/test/ai2025.db"
-- テーブルが存在しなければ、createする。table name=users,テーブル仕様={ id char {ユニークID} , email char(64), paytime int default 0 , count default 5 , create_time=TIME_STAMP }
+- テーブルが存在しなければ、createする。
+###
+table name=rooms
+{ id char text primary key , 
+email text , 
+messy_level int dafault 0 , 
+messy_reason text ,
+err int,
+est int,
+
+stp1 text , 
+est1 int,
+stt1 int,
+end1 int,
+img1 text,
+
+stp2 text , 
+est2 int,
+stt2 int,
+end2 int,
+img2 text,
+
+stp3 text , 
+est3 int,
+stt3 int,
+end3 int,
+img3 text,
+
+
+stp4 text , 
+est4 int,
+stt4 int,
+end4 int,
+img4 text,
+
+stp5 text , 
+est5 int,
+stt5 int,
+end5 int,
+img5 text,
+err text );
 
 
 ##エンドポイント##
@@ -22,13 +62,34 @@ Body : '{"contents":[{"parts":[{"text": "${prompt_tidy}"},{"inline_data": {"mime
 ###
 (5)get the text value from response.candidates[0].content.parts[0].text. and conver to json variable 'ai_response_json'. 
 (6)consle.log( ai_response_json )
+(7)Insert following data to 'rooms' in SQlite3 Database 
+###
+id = UUID()
+messy_level = ai_response_json.messy_level,
+messy_reason = ai_response_json.messy_reason,  
+stp1 = ai_response_json.step1,
+est1 = ai_response_json.est1,
+stp2 = ai_response_json.step2,
+est2 = ai_response_json.est2,
+stp3 = ai_response_json.step3,
+est3 = ai_response_json.est3,
+stp4 = ai_response_json.step4,
+est4 = ai_response_json.est4,
+stp5 = ai_response_json.step5,
+est5 = ai_response_json.est5,
+est = ai_response_json.est1+ai_response_json.est2+ai_response_json.est3+ai_response_json.est4+ai_response_json.est5
 
 
-/pay
 
+/get_pay_url
+(1)
 
 /webhook
-
+(1)これはStripeのproduct-linkのwebhookである。
+(2)POSTのJSONからキーdata.object.client_reference_idを取得し、変数idに格納する。
+(3)DBにアクセスし、updateでテーブルuserからidが同じ列のpaytimeを現在のunixtimeに更新する。 
+(4)responseを次のJSONで返す。{ response : ok }
+(5)/droptable sqlite3にアクセスし、drop table usersを実行する。
 
 /skip
 
